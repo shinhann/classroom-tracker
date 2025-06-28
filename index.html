@@ -116,7 +116,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // *** 關鍵修改：已填入您專屬的 Firebase 通行碼 ***
         const firebaseConfig = {
           apiKey: "AIzaSyC_M_5aXGEuFoDA58fHVbI-1Pv_YQK5x48",
           authDomain: "myclassroom-5bfe0.firebaseapp.com",
@@ -173,19 +172,10 @@
                 return;
             }
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
             } catch (error) {
-                console.warn("主要驗證方式失敗。", error.message);
-                try {
-                    await signInAnonymously(auth);
-                } catch (finalError) {
-                    console.error("備用驗證亦失敗。", finalError);
-                    showMessage("驗證失敗，請刷新頁面再試。");
-                }
+                console.error("匿名登入失敗。", error);
+                showMessage("驗證失敗，請刷新頁面再試。");
             }
         }
 
@@ -232,7 +222,7 @@
             showView('teacher-view');
             document.getElementById('teacher-class-code').textContent = classCode;
             document.getElementById('end-class-btn').onclick = () => endClassroom(classCode);
-            const classroomRef = doc(db, `artifacts/${appId}/public/data/classrooms`, classCode);
+            const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
             if (currentStatusUnsubscribe) currentStatusUnsubscribe();
             currentStatusUnsubscribe = onSnapshot(classroomRef, (docSnap) => {
                 if (docSnap.exists()) {
@@ -258,7 +248,7 @@
             showView('student-view');
             document.getElementById('student-class-code').textContent = classCode;
             document.getElementById('student-seat-number').textContent = seat;
-            const classroomRef = doc(db, `artifacts/${appId}/public/data/classrooms`, classCode);
+            const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
             try {
                 const docSnap = await getDoc(classroomRef);
                 if (!docSnap.exists() || !docSnap.data().isActive) {
@@ -305,7 +295,7 @@
             let classExists = true;
             while(classExists) {
                 classCode = Math.floor(1000 + Math.random() * 9000).toString();
-                const classroomRef = doc(db, `artifacts/${appId}/public/data/classrooms`, classCode);
+                const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
                 const docSnap = await getDoc(classroomRef);
                 classExists = docSnap.exists();
             }
@@ -321,7 +311,7 @@
                 isActive: true
             };
             try {
-                await setDoc(doc(db, `artifacts/${appId}/public/data/classrooms`, classCode), classroomData);
+                await setDoc(doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode), classroomData);
                 window.location.hash = `#/teacher/${classCode}`;
             } catch (error) {
                 console.error("建立教室時發生錯誤: ", error);
@@ -331,7 +321,7 @@
         
         function endClassroom(classCode) {
             showConfirmation("您確定要結束這個教室嗎？", async () => {
-                const classroomRef = doc(db, `artifacts/${appId}/public/data/classrooms`, classCode);
+                const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
                 try {
                     await updateDoc(classroomRef, { isActive: false });
                 } catch(error) {
@@ -371,7 +361,7 @@
                 showMessage("請輸入教室代碼並選擇座號！");
                 return;
             }
-            const classroomRef = doc(db, `artifacts/${appId}/public/data/classrooms`, classCode);
+            const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
             try {
                 const docSnap = await getDoc(classroomRef);
                 if (docSnap.exists() && docSnap.data().isActive) {
@@ -391,7 +381,7 @@
         }
 
         async function changeStatus(classCode, seat) {
-            const classroomRef = doc(db, `artifacts/${appId}/public/data/classrooms`, classCode);
+            const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
             try {
                 const docSnap = await getDoc(classroomRef);
                 if (docSnap.exists()) {
@@ -407,7 +397,7 @@
         }
         
         async function updateStudentStatus(classCode, seat, status, isOnline) {
-             const classroomRef = doc(db, `artifacts/${appId}/public/data/classrooms`, classCode);
+             const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
              const updateData = {};
              updateData[`students.${seat}.status`] = status;
              updateData[`students.${seat}.online`] = isOnline;
