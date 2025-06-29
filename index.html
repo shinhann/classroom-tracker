@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 關鍵修改：更新內容安全策略(CSP)，允許 Firebase、Google 登入及字型所需的所有資源 -->
     <meta http-equiv="Content-Security-Policy" 
           content="default-src 'self'; 
                    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://apis.google.com https://*.firebaseio.com; 
@@ -138,6 +137,12 @@
         </div>
     </div>
     
+    <!-- 新增的使用說明按鈕 -->
+    <a href="https://docs.google.com/document/d/1DlJmmo7XsiqLHWCO0rDU5i-yuPLgI9NPN0tTBdrlm14/edit?usp=sharing" target="_blank" class="group fixed bottom-5 right-5 w-14 h-14 bg-gray-700 rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 transition-all">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span class="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">使用說明</span>
+    </a>
+
     <footer class="w-full text-center py-4 text-gray-500 text-sm shrink-0">
         Designed by <a href="mailto:shinhann@tmail.ilc.edu.tw" class="text-indigo-600 hover:underline">蔡欣翰老師</a>
     </footer>
@@ -145,7 +150,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, browserLocalPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -237,6 +242,7 @@
             async function signInAsTeacher() {
                 const provider = new GoogleAuthProvider();
                 try {
+                    await setPersistence(auth, browserLocalPersistence);
                     await signInWithPopup(auth, provider);
                 } catch (error) {
                     console.error("Google 登入失敗:", error);
@@ -520,57 +526,41 @@
             function showStudentPanel() {
                 showView('student-join-view');
             }
-                
-            function routeApp() {
-                const hash = window.location.hash.slice(1);
-                const parts = hash.split('/').filter(p => p); 
-                const view = parts[0];
-                const code = parts[1];
-                const seat = parts[2];
-
-                if (view === 'teacher' && code) {
-                    showTeacherDashboard(code);
-                } else if (view === 'student' && code && seat) {
-                    showStudentTaskPage(code, seat);
-                } else {
-                    if (auth.currentUser && !auth.currentUser.isAnonymous) {
-                        showView('teacher-main-view');
-                    } else {
-                        showView('role-selection-view');
-                    }
-                }
-            }
-
+            
             // --- Execution Logic ---
-            document.getElementById('teacher-role-btn').onclick = showTeacherPanel;
-            document.getElementById('student-role-btn').onclick = showStudentPanel;
-            document.getElementById('google-login-btn').onclick = signInAsTeacher;
-            document.getElementById('logout-btn').onclick = () => signOut(auth);
-            document.getElementById('create-class-btn').onclick = createClassroom;
-            document.getElementById('join-class-btn').onclick = joinClassroom;
-            document.getElementById('resume-session-btn').onclick = resumeLastSession;
-            
-            populateSeatSelector();
-            window.addEventListener('hashchange', routeApp);
-            
-            onAuthStateChanged(auth, (user) => {
-                if(user && !user.isAnonymous) {
-                    userId = user.uid;
-                    updateUIToTeacherLoggedIn(user);
-                    loadTeacherActiveSessions(user.uid); 
-                } else {
-                    userId = null;
-                    updateUIToLoggedOut();
-                }
-                routeApp();
-            });
-
-            if (!auth.currentUser) {
-                signInAnonymously(auth).catch(error => {
-                    console.error("匿名登入失敗。", error);
-                    showMessage("驗證失敗，請刷新頁面再試。");
+            function main() {
+                document.getElementById('teacher-role-btn').onclick = showTeacherPanel;
+                document.getElementById('student-role-btn').onclick = showStudentPanel;
+                document.getElementById('google-login-btn').onclick = signInAsTeacher;
+                document.getElementById('logout-btn').onclick = () => signOut(auth);
+                document.getElementById('create-class-btn').onclick = createClassroom;
+                document.getElementById('join-class-btn').onclick = joinClassroom;
+                document.getElementById('resume-session-btn').onclick = resumeLastSession;
+                
+                populateSeatSelector();
+                window.addEventListener('hashchange', routeApp);
+                
+                onAuthStateChanged(auth, (user) => {
+                    if(user && !user.isAnonymous) {
+                        userId = user.uid;
+                        updateUIToTeacherLoggedIn(user);
+                        loadTeacherActiveSessions(user.uid); 
+                    } else {
+                        userId = null;
+                        updateUIToLoggedOut();
+                    }
+                    routeApp();
                 });
+
+                if (!auth.currentUser) {
+                    signInAnonymously(auth).catch(error => {
+                        console.error("匿名登入失敗。", error);
+                        showMessage("驗證失敗，請刷新頁面再試。");
+                    });
+                }
             }
+            
+            main();
         });
 
     </script>
