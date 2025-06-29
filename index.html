@@ -10,20 +10,12 @@
         body {
             font-family: 'M PLUS Rounded 1c', sans-serif;
         }
-        /* 自定義動畫 */
         @keyframes pop-in {
             0% { transform: scale(0.5); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
         .pop-in {
             animation: pop-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        .btn-pulse:hover {
-            animation: pulse 0.5s infinite;
         }
         .student-card {
             transition: all 0.3s ease-in-out;
@@ -35,85 +27,87 @@
     <!-- 主容器 -->
     <div id="app-container" class="w-full max-w-6xl mx-auto">
 
-        <!-- 首頁/登入頁 -->
-        <div id="home-view" class="text-center bg-white p-8 rounded-2xl shadow-lg">
-            <h1 class="text-4xl font-extrabold text-blue-600 mb-2">🚀 教室任務衝衝衝！</h1>
-            <p class="text-gray-500 mb-8">老師建立教室，學生加入冒險！</p>
-
-            <div class="grid md:grid-cols-2 gap-8">
-                <!-- 老師區塊 -->
-                <div class="bg-blue-50 p-6 rounded-xl border-2 border-blue-200">
-                    <h2 class="text-2xl font-bold text-blue-800 mb-4">👑 我是老師</h2>
-                    <div class="flex flex-col space-y-4">
-                        <input type="number" id="student-count" min="1" max="40" placeholder="班級有幾位學生？" class="p-3 border-2 border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none">
-                        <button id="create-class-btn" class="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-600 transition-all duration-300 transform hover:scale-105">建立教室</button>
-                    </div>
+        <!-- 初始載入/身份選擇畫面 -->
+        <div id="role-selection-view" class="max-w-xl mx-auto">
+            <div class="text-center bg-white p-8 rounded-2xl shadow-lg">
+                <h1 class="text-4xl font-extrabold text-indigo-700 mb-2">🚀 教室任務衝衝衝！</h1>
+                <p class="text-gray-500 mb-8">請選擇您的身份</p>
+                <div class="space-y-4">
+                    <button id="teacher-role-btn" class="w-full bg-blue-500 text-white font-bold py-4 px-6 rounded-lg shadow-md hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 text-2xl">👑 我是老師</button>
+                    <button id="student-role-btn" class="w-full bg-green-500 text-white font-bold py-4 px-6 rounded-lg shadow-md hover:bg-green-600 transition-all duration-300 transform hover:scale-105 text-2xl">🎒 我是學生</button>
                 </div>
+            </div>
+        </div>
+        
+        <!-- 老師登入/建立教室畫面 -->
+        <div id="teacher-main-view" class="hidden max-w-xl mx-auto text-center">
+             <div class="bg-white p-8 rounded-2xl shadow-lg">
+                <div id="teacher-login-panel">
+                    <h2 class="text-2xl font-bold text-blue-800 mb-4">老師，請登入以繼續</h2>
+                    <button id="google-login-btn" class="w-full bg-white border-2 border-gray-300 text-gray-700 font-bold py-3 px-6 rounded-lg shadow-sm hover:bg-gray-50 flex items-center justify-center space-x-2">
+                        <svg class="w-6 h-6" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
+                        <span>使用 Google 帳號登入</span>
+                    </button>
+                </div>
+                 <div id="create-class-panel" class="hidden">
+                     <h2 class="text-2xl font-bold text-blue-800 mb-4">歡迎，<span id="teacher-name"></span>老師！</h2>
+                     <p class="text-gray-500 mb-6">請輸入學生人數以建立新教室。</p>
+                     <input type="number" id="student-count" min="1" max="40" placeholder="班級有幾位學生？" class="w-full p-3 border-2 border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none mb-4">
+                     <button id="create-class-btn" class="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-600">建立教室</button>
+                 </div>
+            </div>
+        </div>
 
-                <!-- 學生區塊 -->
-                <div class="bg-green-50 p-6 rounded-xl border-2 border-green-200">
-                    <h2 class="text-2xl font-bold text-green-800 mb-4">🎒 我是學生</h2>
-                    <div class="flex flex-col space-y-4">
-                        <input type="text" id="class-code-input" placeholder="教室代碼 (4位數字)" maxlength="4" class="p-3 border-2 border-green-200 rounded-lg focus:ring-2 focus:ring-green-400 focus:outline-none">
-                        <select id="seat-number-select" class="p-3 border-2 border-green-200 rounded-lg bg-white focus:ring-2 focus:ring-green-400 focus:outline-none">
-                            <option value="">請選擇座號</option>
-                        </select>
-                        <button id="join-class-btn" class="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-green-600 transition-all duration-300 transform hover:scale-105">加入教室</button>
-                    </div>
+        <!-- 學生登入畫面 -->
+        <div id="student-join-view" class="hidden max-w-xl mx-auto">
+             <div class="mt-4 bg-white p-8 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold text-green-800 mb-4">加入教室</h2>
+                <div class="flex flex-col space-y-4">
+                    <input type="text" id="class-code-input" placeholder="教室代碼 (4位數字)" maxlength="4" class="p-3 border-2 border-green-200 rounded-lg focus:ring-2 focus:ring-green-400 focus:outline-none">
+                    <select id="seat-number-select" class="p-3 border-2 border-green-200 rounded-lg bg-white focus:ring-2 focus:ring-green-400 focus:outline-none">
+                        <option value="">請選擇座號</option>
+                    </select>
+                    <button id="join-class-btn" class="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-green-600">加入教室</button>
                 </div>
             </div>
         </div>
 
         <!-- 老師儀表板 -->
-        <div id="teacher-view" class="hidden">
+        <div id="teacher-dashboard-view" class="hidden">
             <div class="flex flex-wrap justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md gap-4">
                 <div>
                     <h1 class="text-3xl font-extrabold text-indigo-700">教師儀表板</h1>
                     <p class="text-gray-600">教室代碼：<span id="teacher-class-code" class="font-bold text-2xl text-red-500 bg-yellow-100 px-2 py-1 rounded"></span></p>
-                    <p class="text-gray-500 mt-1">分享此代碼給學生加入！</p>
                 </div>
-                <button id="end-class-btn" class="bg-red-500 text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600 transition-all duration-300">結束教室</button>
+                <button id="end-class-btn" class="bg-red-500 text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-red-600">結束教室</button>
             </div>
-            <div id="student-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            </div>
+            <div id="student-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
         </div>
 
         <!-- 學生個人頁面 -->
-        <div id="student-view" class="hidden text-center max-w-md mx-auto">
-             <div class="bg-white p-8 rounded-3xl shadow-2xl">
-                <p class="text-lg text-gray-500">教室代碼: <span id="student-class-code" class="font-bold text-blue-600"></span></p>
-                <h1 class="text-5xl font-extrabold my-4">座號 <span id="student-seat-number" class="text-amber-500"></span></h1>
-                <p class="text-2xl font-bold mb-6">我的任務狀態</p>
-                <div id="status-display-container" class="p-6 rounded-2xl mb-6 transition-all duration-500">
-                </div>
-                <button id="change-status-btn" class="text-white font-bold py-4 px-8 rounded-2xl shadow-lg w-full transition-all duration-300 transform hover:scale-105 btn-pulse flex items-center justify-center space-x-4 text-2xl">
-                </button>
-            </div>
-        </div>
+        <div id="student-task-view" class="hidden"></div>
     </div>
     
-    <!-- 訊息 Modal -->
+    <!-- Modals (no change) -->
     <div id="message-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div class="bg-white p-8 rounded-2xl shadow-xl text-center max-w-sm mx-auto pop-in">
             <p id="modal-message" class="text-xl font-bold mb-6"></p>
-            <button id="modal-close-btn" class="bg-blue-500 text-white font-bold py-2 px-8 rounded-lg hover:bg-blue-600 transition-all">好的</button>
+            <button id="modal-close-btn" class="bg-blue-500 text-white font-bold py-2 px-8 rounded-lg hover:bg-blue-600">好的</button>
         </div>
     </div>
-    
-    <!-- 確認 Modal -->
     <div id="confirmation-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div class="bg-white p-8 rounded-2xl shadow-xl text-center max-w-sm mx-auto pop-in">
             <p id="confirmation-message" class="text-xl font-bold mb-6"></p>
             <div class="flex justify-center gap-4">
-                <button id="confirm-btn" class="bg-red-500 text-white font-bold py-2 px-8 rounded-lg hover:bg-red-600 transition-all">確定</button>
-                <button id="cancel-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-8 rounded-lg hover:bg-gray-400 transition-all">取消</button>
+                <button id="confirm-btn" class="bg-red-500 text-white font-bold py-2 px-8 rounded-lg hover:bg-red-600">確定</button>
+                <button id="cancel-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-8 rounded-lg hover:bg-gray-400">取消</button>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -129,7 +123,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-
+        
         const STATUSES = {
             working: { text: "努力工作中...", color: "bg-blue-500", cardColor: "bg-blue-100 border-blue-400", icon: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><path fill="currentColor" d="M14.5 9.5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0M9.5 9.5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0m.25 4.5a.75.75 0 0 0-1.5 0v1.5c0 .28.22.5.5.5h2.5a.75.75 0 0 0 0-1.5h-1.5zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10s10-4.477 10-10S17.523 2 12 2m0 2a8 8 0 1 1 0 16a8 8 0 0 1 0-16"/></svg>`},
             more_time: { text: "需要多一點時間", color: "bg-orange-500", cardColor: "bg-orange-100 border-orange-400", icon: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><path fill="currentColor" d="M14.5 9.5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0M9.5 9.5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0m-2.25 4a.75.75 0 0 0-1.5 0v2.5c0 .13.05.25.15.35l1.75 1.75a.75.75 0 1 0 1.06-1.06l-1.41-1.41zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10s10-4.477 10-10S17.523 2 12 2m0 2a8 8 0 1 1 0 16a8 8 0 0 1 0-16"/></svg>`},
@@ -140,43 +134,36 @@
         const statusOrder = ['working', 'more_time', 'help', 'completed'];
         let currentStatusUnsubscribe = null;
         let userId = null;
-        let authReady = false;
 
         // --- 核心啟動邏輯 ---
         function main() {
+            document.getElementById('teacher-role-btn').onclick = showTeacherPanel;
+            document.getElementById('student-role-btn').onclick = showStudentPanel;
+            document.getElementById('google-login-btn').onclick = signInAsTeacher;
             document.getElementById('create-class-btn').onclick = createClassroom;
             document.getElementById('join-class-btn').onclick = joinClassroom;
-            populateSeatSelector();
             
+            populateSeatSelector();
             window.addEventListener('hashchange', routeApp);
-
-            const unsubscribe = onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    unsubscribe(); 
-                    authReady = true;
+            
+            onAuthStateChanged(auth, (user) => {
+                if(user && !user.isAnonymous) {
+                    console.log("偵測到老師登入:", user.displayName);
                     userId = user.uid;
-                    console.log("Firebase 驗證成功，ID:", userId, "正在路由...");
-                    routeApp();
+                    updateUIToTeacherLoggedIn(user);
+                } else {
+                    console.log("用戶為匿名或已登出。");
+                    updateUIToLoggedOut();
                 }
+                routeApp();
             });
-            authenticateUser();
         }
-
-        async function authenticateUser() {
-            if (auth.currentUser) {
-                 if (!authReady) {
-                    authReady = true;
-                    userId = auth.currentUser.uid;
-                    routeApp();
-                }
-                return;
-            }
-            try {
-                await signInAnonymously(auth);
-            } catch (error) {
-                console.error("匿名登入失敗。", error);
-                showMessage("驗證失敗，請刷新頁面再試。");
-            }
+        
+        function showView(viewId) {
+            ['role-selection-view', 'teacher-main-view', 'student-join-view', 'teacher-dashboard-view', 'student-task-view'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(viewId).classList.remove('hidden');
         }
 
         function routeApp() {
@@ -187,13 +174,85 @@
             const seat = parts[2];
 
             if (view === 'teacher' && code) {
-                showTeacherView(code);
+                showTeacherDashboard(code);
             } else if (view === 'student' && code && seat) {
-                showStudentView(code, seat);
+                showStudentTaskPage(code, seat);
             } else {
-                showHomeView();
+                // Not in a specific classroom view, decide based on login state
+                if (auth.currentUser && !auth.currentUser.isAnonymous) {
+                    showView('teacher-main-view');
+                } else {
+                    showView('role-selection-view');
+                }
             }
         }
+        
+        function showTeacherPanel() {
+            showView('teacher-main-view');
+        }
+
+        function showStudentPanel() {
+            showView('student-join-view');
+        }
+
+        function updateUIToTeacherLoggedIn(user) {
+            showView('teacher-main-view');
+            document.getElementById('teacher-login-panel').classList.add('hidden');
+            const createPanel = document.getElementById('create-class-panel');
+            createPanel.classList.remove('hidden');
+            document.getElementById('teacher-name').textContent = user.displayName || '老師';
+        }
+        
+        function updateUIToLoggedOut() {
+            showView('role-selection-view');
+            document.getElementById('teacher-login-panel').classList.remove('hidden');
+            document.getElementById('create-class-panel').classList.add('hidden');
+        }
+
+        async function signInAsTeacher() {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+                // onAuthStateChanged will handle the UI update
+            } catch (error) {
+                console.error("Google 登入失敗:", error);
+                showMessage("使用 Google 登入時發生錯誤，請稍後再試。");
+            }
+        }
+
+        async function joinClassroom() {
+            try {
+                // Ensure student is anonymously signed in
+                if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+                    await signInAnonymously(auth);
+                }
+                userId = auth.currentUser.uid;
+                
+                const classCode = document.getElementById('class-code-input').value;
+                const seatNumber = document.getElementById('seat-number-select').value;
+                if (!classCode || !seatNumber) {
+                    return showMessage("請輸入教室代碼並選擇座號！");
+                }
+
+                const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
+                const docSnap = await getDoc(classroomRef);
+                if (docSnap.exists() && docSnap.data().isActive) {
+                    const studentCount = docSnap.data().studentCount;
+                    if (parseInt(seatNumber) > studentCount) {
+                        return showMessage("這個座號不存在於此教室！");
+                    }
+                    window.location.hash = `#/student/${classCode}/${seatNumber}`;
+                } else {
+                    showMessage("找不到這個教室，或教室已經關閉。");
+                }
+            } catch (error) {
+                 console.error("加入教室失敗:", error);
+                 showMessage("加入教室時發生錯誤。");
+            }
+        }
+        
+        // ---- The rest of the functions (createClassroom, showTeacherDashboard, etc.) are largely the same ----
+        // ---- with minor tweaks to view IDs and data paths ----
 
         function populateSeatSelector() {
             const seatSelect = document.getElementById('seat-number-select');
@@ -206,20 +265,9 @@
                 }
             }
         }
-        
-        function showView(viewId) {
-            ['home-view', 'teacher-view', 'student-view'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
-            });
-            document.getElementById(viewId).classList.remove('hidden');
-        }
 
-        function showHomeView() {
-            showView('home-view');
-        }
-
-        function showTeacherView(classCode) {
-            showView('teacher-view');
+        function showTeacherDashboard(classCode) {
+            showView('teacher-dashboard-view');
             document.getElementById('teacher-class-code').textContent = classCode;
             document.getElementById('end-class-btn').onclick = () => endClassroom(classCode);
             const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
@@ -229,33 +277,42 @@
                     const data = docSnap.data();
                     if (!data.isActive) {
                         if (currentStatusUnsubscribe) currentStatusUnsubscribe();
-                        showMessage("這個教室已被老師關閉。", () => {
-                           window.location.hash = '';
-                        });
+                        showMessage("這個教室已被老師關閉。", () => { window.location.hash = ''; });
                         return;
                     }
                     renderStudentGrid(data.studentCount, data.students || {});
                 } else {
                     if (currentStatusUnsubscribe) currentStatusUnsubscribe();
-                    showMessage("找不到這個教室！", () => {
-                        window.location.hash = '';
-                    });
+                    showMessage("找不到這個教室！", () => { window.location.hash = ''; });
                 }
             });
         }
         
-        async function showStudentView(classCode, seat) {
-            showView('student-view');
-            document.getElementById('student-class-code').textContent = classCode;
-            document.getElementById('student-seat-number').textContent = seat;
+        async function showStudentTaskPage(classCode, seat) {
+            showView('student-task-view');
+            // Inject the student UI into the container
+            document.getElementById('student-task-view').innerHTML = `
+             <div class="bg-white p-8 rounded-3xl shadow-2xl">
+                <p class="text-lg text-gray-500">教室代碼: <span id="student-class-code-task" class="font-bold text-blue-600"></span></p>
+                <h1 class="text-5xl font-extrabold my-4">座號 <span id="student-seat-number-task" class="text-amber-500"></span></h1>
+                <p class="text-2xl font-bold mb-6">我的任務狀態</p>
+                <div id="status-display-container" class="p-6 rounded-2xl mb-6 transition-all duration-500"></div>
+                <button id="change-status-btn" class="text-white font-bold py-4 px-8 rounded-2xl shadow-lg w-full transition-all duration-300 flex items-center justify-center space-x-4 text-2xl"></button>
+            </div>`;
+            
+            document.getElementById('student-class-code-task').textContent = classCode;
+            document.getElementById('student-seat-number-task').textContent = seat;
+
             const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
             try {
+                // Ensure student is anonymously signed in
+                if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+                   await signInAnonymously(auth);
+                }
+                
                 const docSnap = await getDoc(classroomRef);
                 if (!docSnap.exists() || !docSnap.data().isActive) {
-                    showMessage("教室不存在或已關閉。", () => {
-                        window.location.hash = '';
-                     });
-                    return;
+                    return showMessage("教室不存在或已關閉。", () => { window.location.hash = ''; });
                 }
                 await updateStudentStatus(classCode, seat, 'working', true);
                 document.getElementById('change-status-btn').onclick = () => changeStatus(classCode, seat);
@@ -263,10 +320,7 @@
                 currentStatusUnsubscribe = onSnapshot(classroomRef, (docSnap) => {
                     if (!docSnap.exists() || !docSnap.data().isActive) {
                         if (currentStatusUnsubscribe) currentStatusUnsubscribe();
-                        showMessage("老師已結束教室。", () => {
-                           window.location.hash = '';
-                        });
-                        return;
+                        return showMessage("老師已結束教室。", () => { window.location.hash = ''; });
                     }
                     const students = docSnap.data().students || {};
                     const myStatus = students[seat]?.status || 'working';
@@ -282,14 +336,12 @@
         }
 
         async function createClassroom() {
-            if (!authReady) {
-                showMessage("系統正在初始化，請稍候片刻再試一次。");
-                return;
+            if (!auth.currentUser || auth.currentUser.isAnonymous) {
+                return showMessage("請先登入老師帳號。");
             }
             const studentCount = parseInt(document.getElementById('student-count').value);
             if (!studentCount || studentCount < 1 || studentCount > 40) {
-                showMessage("請輸入有效的學生人數 (1-40)。");
-                return;
+                return showMessage("請輸入有效的學生人數 (1-40)。");
             }
             let classCode;
             let classExists = true;
@@ -304,7 +356,7 @@
                 initialStudents[i] = { status: 'offline', online: false };
             }
             const classroomData = {
-                teacherId: userId,
+                teacherId: auth.currentUser.uid,
                 studentCount: studentCount,
                 students: initialStudents,
                 createdAt: serverTimestamp(),
@@ -350,36 +402,6 @@
             }
         }
 
-        async function joinClassroom() {
-            if (!authReady) {
-                showMessage("系統正在初始化，請稍候片刻再試一次。");
-                return;
-            }
-            const classCode = document.getElementById('class-code-input').value;
-            const seatNumber = document.getElementById('seat-number-select').value;
-            if (!classCode || !seatNumber) {
-                showMessage("請輸入教室代碼並選擇座號！");
-                return;
-            }
-            const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
-            try {
-                const docSnap = await getDoc(classroomRef);
-                if (docSnap.exists() && docSnap.data().isActive) {
-                    const studentCount = docSnap.data().studentCount;
-                    if (parseInt(seatNumber) > studentCount) {
-                        showMessage("這個座號不存在於此教室！");
-                        return;
-                    }
-                    window.location.hash = `#/student/${classCode}/${seatNumber}`;
-                } else {
-                    showMessage("找不到這個教室，或教室已經關閉。");
-                }
-            } catch (error) {
-                console.error("加入教室時發生錯誤: ", error);
-                showMessage("加入教室時發生錯誤。");
-            }
-        }
-
         async function changeStatus(classCode, seat) {
             const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
             try {
@@ -391,9 +413,7 @@
                     const nextStatus = statusOrder[nextIndex];
                     await updateStudentStatus(classCode, seat, nextStatus, true);
                 }
-            } catch (e) {
-                console.error("更改狀態失敗", e)
-            }
+            } catch (e) { console.error("更改狀態失敗", e) }
         }
         
         async function updateStudentStatus(classCode, seat, status, isOnline) {
@@ -405,9 +425,7 @@
                 await updateDoc(classroomRef, updateData);
              } catch(error) {
                 console.error("更新狀態時發生錯誤:", error);
-                if (isOnline) { 
-                    showMessage("更新狀態失敗，請檢查網路連線。");
-                }
+                if (isOnline) { showMessage("更新狀態失敗，請檢查網路連線。"); }
              }
         }
 
@@ -417,7 +435,7 @@
             const changeBtn = document.getElementById('change-status-btn');
             displayContainer.className = `p-8 rounded-2xl mb-6 transition-all duration-500 ${statusInfo.cardColor}`;
             displayContainer.innerHTML = `<div class="w-32 h-32 mx-auto flex items-center justify-center">${statusInfo.icon}</div>`;
-            changeBtn.className = `text-white font-bold py-4 px-8 rounded-2xl shadow-lg w-full transition-all duration-300 transform hover:scale-105 btn-pulse flex items-center justify-center space-x-4 text-2xl ${statusInfo.color}`;
+            changeBtn.className = `text-white font-bold py-4 px-8 rounded-2xl shadow-lg w-full transition-all duration-300 flex items-center justify-center space-x-4 text-2xl ${statusInfo.color}`;
             changeBtn.innerHTML = `
                 <span>${statusInfo.text}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -433,9 +451,7 @@
             modal.classList.remove('hidden');
             closeBtn.onclick = () => {
                 modal.classList.add('hidden');
-                if (onclose) {
-                    onclose();
-                }
+                if (onclose) { onclose(); }
             };
         }
         
@@ -448,13 +464,9 @@
             modal.classList.remove('hidden');
             confirmBtn.onclick = () => {
                 modal.classList.add('hidden');
-                if (onConfirm) {
-                    onConfirm();
-                }
+                if (onConfirm) { onConfirm(); }
             };
-            cancelBtn.onclick = () => {
-                modal.classList.add('hidden');
-            };
+            cancelBtn.onclick = () => { modal.classList.add('hidden'); };
         }
 
         main();
