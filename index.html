@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 關鍵修改：新增內容安全策略 (CSP)，以允許外部腳本和內聯操作 -->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;">
     <title>教室任務狀態追蹤器</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
@@ -168,376 +170,389 @@
         let offlineTimer = null;
         let lastActiveStatus = 'working';
         
-        // --- Functions Definition (All functions defined before execution) ---
-
-        function showView(viewId) {
-            ['role-selection-view', 'teacher-main-view', 'student-join-view', 'teacher-dashboard-view', 'student-task-view'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
-            });
-            document.getElementById(viewId).classList.remove('hidden');
-        }
-
-        function showMessage(message, onclose) {
-            const modal = document.getElementById('message-modal');
-            const messageP = document.getElementById('modal-message');
-            const closeBtn = document.getElementById('modal-close-btn');
-            messageP.textContent = message;
-            modal.classList.remove('hidden');
-            closeBtn.onclick = () => {
-                modal.classList.add('hidden');
-                if (onclose) { onclose(); }
-            };
-        }
-        
-        function showConfirmation(message, onConfirm) {
-            const modal = document.getElementById('confirmation-modal');
-            const messageP = document.getElementById('confirmation-message');
-            const confirmBtn = document.getElementById('confirm-btn');
-            const cancelBtn = document.getElementById('cancel-btn');
-            messageP.textContent = message;
-            modal.classList.remove('hidden');
-            confirmBtn.onclick = () => {
-                modal.classList.add('hidden');
-                if (onConfirm) { onConfirm(); }
-            };
-            cancelBtn.onclick = () => { modal.classList.add('hidden'); };
-        }
-        
-        function resumeLastSession() {
-            const lastClassCode = localStorage.getItem('LAST_CLASS_KEY');
-            if (lastClassCode) {
-                window.location.hash = `#/teacher/${lastClassCode}`;
-            }
-        }
-        
-        function updateUIToTeacherLoggedIn(user) {
-            showView('teacher-main-view');
-            document.getElementById('teacher-login-panel').classList.add('hidden');
-            document.getElementById('create-class-panel').classList.remove('hidden');
-            document.getElementById('teacher-name').textContent = user.displayName || '老師';
-        }
-        
-        function updateUIToLoggedOut() {
-            showView('role-selection-view');
-            document.getElementById('teacher-login-panel').classList.remove('hidden');
-            document.getElementById('create-class-panel').classList.add('hidden');
-            document.getElementById('active-classrooms-section').classList.add('hidden');
-        }
-
-        async function signInAsTeacher() {
-            const provider = new GoogleAuthProvider();
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (error) {
-                console.error("Google 登入失敗:", error);
-                showMessage("使用 Google 登入時發生錯誤，請稍後再試。");
-            }
-        }
-
-        async function joinClassroom() {
-            try {
-                if (!auth.currentUser || !auth.currentUser.isAnonymous) {
-                    await signInAnonymously(auth);
-                }
-                userId = auth.currentUser.uid;
-                
-                const classCode = document.getElementById('class-code-input').value;
-                const seatNumber = document.getElementById('seat-number-select').value;
-                if (!classCode || !seatNumber) return showMessage("請輸入教室代碼並選擇座號！");
-
-                const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
-                const docSnap = await getDoc(classroomRef);
-                if (docSnap.exists() && docSnap.data().isActive) {
-                    const studentCount = docSnap.data().studentCount;
-                    if (parseInt(seatNumber) > studentCount) return showMessage("這個座號不存在於此教室！");
-                    window.location.hash = `#/student/${classCode}/${seatNumber}`;
-                } else {
-                    showMessage("找不到這個教室，或教室已經關閉。");
-                }
-            } catch (error) {
-                 console.error("加入教室失敗:", error);
-                 showMessage("加入教室時發生錯誤。");
-            }
-        }
-        
-        function populateSeatSelector() {
-            const seatSelect = document.getElementById('seat-number-select');
-            if (seatSelect.options.length <= 1) {
-                 for (let i = 1; i <= 40; i++) {
-                    const option = document.createElement('option');
-                    option.value = i;
-                    option.textContent = `${i}號`;
-                    seatSelect.appendChild(option);
-                }
-            }
-        }
-
-        async function loadTeacherActiveSessions(teacherId) {
-            const classroomsRef = collection(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`);
-            const q = query(classroomsRef, where("teacherId", "==", teacherId), where("isActive", "==", true));
+        // Wrap all logic in a DOMContentLoaded listener for maximum robustness
+        document.addEventListener('DOMContentLoaded', () => {
             
-            const querySnapshot = await getDocs(q);
-            const listContainer = document.getElementById('active-classrooms-list');
-            const section = document.getElementById('active-classrooms-section');
-            listContainer.innerHTML = '';
-            
-            if (querySnapshot.empty) {
-                section.classList.add('hidden');
-                return;
+            // --- Functions Definition (All functions defined before execution) ---
+
+            function showView(viewId) {
+                ['role-selection-view', 'teacher-main-view', 'student-join-view', 'teacher-dashboard-view', 'student-task-view'].forEach(id => {
+                    document.getElementById(id).classList.add('hidden');
+                });
+                document.getElementById(viewId).classList.remove('hidden');
             }
 
-            section.classList.remove('hidden');
-            querySnapshot.forEach((doc) => {
-                const button = document.createElement('button');
-                button.className = "bg-purple-100 text-purple-800 font-bold py-2 px-4 rounded-lg hover:bg-purple-200";
-                button.textContent = `教室代碼: ${doc.id}`;
-                button.onclick = () => {
-                    window.location.hash = `#/teacher/${doc.id}`;
+            function showMessage(message, onclose) {
+                const modal = document.getElementById('message-modal');
+                const messageP = document.getElementById('modal-message');
+                const closeBtn = document.getElementById('modal-close-btn');
+                messageP.textContent = message;
+                modal.classList.remove('hidden');
+                closeBtn.onclick = () => {
+                    modal.classList.add('hidden');
+                    if (onclose) { onclose(); }
                 };
-                listContainer.appendChild(button);
-            });
-        }
-        
-        function endClassroom(classCode, silent = false) {
-            const action = async () => {
+            }
+            
+            function showConfirmation(message, onConfirm) {
+                const modal = document.getElementById('confirmation-modal');
+                const messageP = document.getElementById('confirmation-message');
+                const confirmBtn = document.getElementById('confirm-btn');
+                const cancelBtn = document.getElementById('cancel-btn');
+                messageP.textContent = message;
+                modal.classList.remove('hidden');
+                confirmBtn.onclick = () => {
+                    modal.classList.add('hidden');
+                    if (onConfirm) { onConfirm(); }
+                };
+                cancelBtn.onclick = () => { modal.classList.add('hidden'); };
+            }
+            
+            function resumeLastSession() {
+                const lastClassCode = localStorage.getItem('LAST_CLASS_KEY');
+                if (lastClassCode) {
+                    window.location.hash = `#/teacher/${lastClassCode}`;
+                }
+            }
+            
+            function updateUIToTeacherLoggedIn(user) {
+                showView('teacher-main-view');
+                document.getElementById('teacher-login-panel').classList.add('hidden');
+                document.getElementById('create-class-panel').classList.remove('hidden');
+                document.getElementById('teacher-name').textContent = user.displayName || '老師';
+            }
+            
+            function updateUIToLoggedOut() {
+                showView('role-selection-view');
+                document.getElementById('teacher-login-panel').classList.remove('hidden');
+                document.getElementById('create-class-panel').classList.add('hidden');
+                document.getElementById('active-classrooms-section').classList.add('hidden');
+            }
+
+            async function signInAsTeacher() {
+                const provider = new GoogleAuthProvider();
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    console.error("Google 登入失敗:", error);
+                    showMessage("使用 Google 登入時發生錯誤，請稍後再試。");
+                }
+            }
+
+            async function joinClassroom() {
+                try {
+                    if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+                        await signInAnonymously(auth);
+                    }
+                    userId = auth.currentUser.uid;
+                    
+                    const classCode = document.getElementById('class-code-input').value;
+                    const seatNumber = document.getElementById('seat-number-select').value;
+                    if (!classCode || !seatNumber) return showMessage("請輸入教室代碼並選擇座號！");
+
+                    const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
+                    const docSnap = await getDoc(classroomRef);
+                    if (docSnap.exists() && docSnap.data().isActive) {
+                        const studentCount = docSnap.data().studentCount;
+                        if (parseInt(seatNumber) > studentCount) return showMessage("這個座號不存在於此教室！");
+                        window.location.hash = `#/student/${classCode}/${seatNumber}`;
+                    } else {
+                        showMessage("找不到這個教室，或教室已經關閉。");
+                    }
+                } catch (error) {
+                     console.error("加入教室失敗:", error);
+                     showMessage("加入教室時發生錯誤。");
+                }
+            }
+            
+            function populateSeatSelector() {
+                const seatSelect = document.getElementById('seat-number-select');
+                if (seatSelect.options.length <= 1) {
+                     for (let i = 1; i <= 40; i++) {
+                        const option = document.createElement('option');
+                        option.value = i;
+                        option.textContent = `${i}號`;
+                        seatSelect.appendChild(option);
+                    }
+                }
+            }
+
+            async function loadTeacherActiveSessions(teacherId) {
+                const classroomsRef = collection(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`);
+                const q = query(classroomsRef, where("teacherId", "==", teacherId), where("isActive", "==", true));
+                
+                const querySnapshot = await getDocs(q);
+                const listContainer = document.getElementById('active-classrooms-list');
+                const section = document.getElementById('active-classrooms-section');
+                listContainer.innerHTML = '';
+                
+                if (querySnapshot.empty) {
+                    section.classList.add('hidden');
+                    return;
+                }
+
+                section.classList.remove('hidden');
+                querySnapshot.forEach((doc) => {
+                    const button = document.createElement('button');
+                    button.className = "bg-purple-100 text-purple-800 font-bold py-2 px-4 rounded-lg hover:bg-purple-200";
+                    button.textContent = `教室代碼: ${doc.id}`;
+                    button.onclick = () => {
+                        window.location.hash = `#/teacher/${doc.id}`;
+                    };
+                    listContainer.appendChild(button);
+                });
+            }
+            
+            function endClassroom(classCode, silent = false) {
+                const action = async () => {
+                    const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
+                    try {
+                        await updateDoc(classroomRef, { isActive: false });
+                        localStorage.removeItem('LAST_CLASS_KEY');
+                    } catch(error) { console.error("結束教室時發生錯誤: ", error); }
+                };
+
+                if (silent) {
+                    action();
+                } else {
+                    showConfirmation("您確定要結束這個教室嗎？", action);
+                }
+            }
+            
+            async function updateStudentStatus(classCode, seat, status, isOnline) {
+                 const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
+                 const updateData = {};
+                 updateData[`students.${seat}.status`] = status;
+                 updateData[`students.${seat}.online`] = isOnline;
+                 updateData[`students.${seat}.lastSeen`] = serverTimestamp();
+                 try {
+                    await updateDoc(classroomRef, updateData);
+                 } catch(error) {
+                    console.error("更新狀態時發生錯誤:", error);
+                    if (isOnline) { showMessage("更新狀態失敗，請檢查網路連線。"); }
+                 }
+            }
+            
+            async function changeStatus(classCode, seat, newStatus) {
+                lastActiveStatus = newStatus; 
+                await updateStudentStatus(classCode, seat, newStatus, true);
+            }
+
+            function updateStudentUI(currentStatus) {
+                statusOrder.forEach(statusKey => {
+                    const optionDiv = document.getElementById(`status-option-${statusKey}`);
+                    if (optionDiv) {
+                        if (statusKey === currentStatus) {
+                            optionDiv.classList.add('active');
+                        } else {
+                            optionDiv.classList.remove('active');
+                        }
+                    }
+                });
+            }
+
+            function renderStudentGrid(studentCount, students) {
+                const grid = document.getElementById('student-grid');
+                grid.innerHTML = '';
+                for (let i = 1; i <= studentCount; i++) {
+                    const studentData = students[i] || { status: 'offline', online: false };
+                    const statusKey = studentData.online ? studentData.status : 'offline';
+                    const statusInfo = STATUSES[statusKey] || STATUSES['offline'];
+                    const card = document.createElement('div');
+                    card.className = `student-card p-2 rounded-lg text-center flex flex-col items-center justify-center pop-in ${statusInfo.color}`;
+                    card.style.animationDelay = `${i * 20}ms`;
+                    card.innerHTML = `
+                        <div class="text-2xl font-extrabold text-gray-800">${i}</div>
+                        <div class="my-1 w-12 h-12 flex items-center justify-center text-gray-700">${statusInfo.icon}</div>
+                        <div class="font-bold text-xs text-gray-600 h-8 flex items-center">${statusInfo.text}</div>
+                    `;
+                    grid.appendChild(card);
+                }
+            }
+
+            function showTeacherDashboard(classCode) {
+                if (!auth.currentUser || auth.currentUser.isAnonymous) return showMessage("只有老師才能查看儀表板", () => {window.location.hash = '';});
+                
+                showView('teacher-dashboard-view');
+                document.getElementById('teacher-class-code').textContent = classCode;
+                document.getElementById('end-class-btn').onclick = () => endClassroom(classCode);
+                const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
+                if (currentStatusUnsubscribe) currentStatusUnsubscribe();
+                currentStatusUnsubscribe = onSnapshot(classroomRef, async (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        if (!data.isActive) {
+                            if (currentStatusUnsubscribe) currentStatusUnsubscribe();
+                            showMessage("這個教室已被老師關閉。", () => {window.location.hash = ''; });
+                            return;
+                        }
+
+                        const now = Timestamp.now();
+                        const createdAt = data.createdAt;
+                        const hasActiveStudents = Object.values(data.students).some(s => s.online);
+                        if (now.seconds - createdAt.seconds > 600 && !hasActiveStudents) {
+                             console.log(`教室 ${classCode} 因閒置超過10分鐘而自動關閉。`);
+                             await endClassroom(classCode, true);
+                             return;
+                        }
+
+                        renderStudentGrid(data.studentCount, data.students || {});
+                    } else {
+                        if (currentStatusUnsubscribe) currentStatusUnsubscribe();
+                        showMessage("找不到這個教室！", () => { window.location.hash = ''; });
+                    }
+                });
+            }
+            
+            async function showStudentTaskPage(classCode, seat) {
+                showView('student-task-view');
+                document.getElementById('student-task-view').innerHTML = `
+                 <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg mx-auto">
+                    <div class="flex justify-between items-center">
+                        <p class="text-lg text-gray-500">教室代碼: <span class="font-bold text-blue-600">${classCode}</span></p>
+                        <h1 class="text-4xl font-extrabold my-4">座號 <span class="text-amber-500">${seat}</span></h1>
+                    </div>
+                    <p class="text-2xl font-bold mb-6 text-center">請點擊圖示，更新您的任務狀態</p>
+                    <div id="status-options-grid" class="grid grid-cols-2 gap-4"></div>
+                </div>`;
+                
+                const optionsGrid = document.getElementById('status-options-grid');
+                statusOrder.forEach(statusKey => {
+                    const statusInfo = STATUSES[statusKey];
+                    const optionDiv = document.createElement('div');
+                    optionDiv.id = `status-option-${statusKey}`;
+                    optionDiv.className = `status-option cursor-pointer p-4 rounded-2xl flex flex-col items-center justify-center text-center ${statusInfo.color}`;
+                    optionDiv.innerHTML = `
+                        <div class="w-16 h-16 mb-2 text-gray-700">${statusInfo.icon}</div>
+                        <p class="font-bold text-gray-800">${statusInfo.text}</p>
+                    `;
+                    optionDiv.onclick = () => changeStatus(classCode, seat, statusKey);
+                    optionsGrid.appendChild(optionDiv);
+                });
+
                 const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
                 try {
-                    await updateDoc(classroomRef, { isActive: false });
-                    localStorage.removeItem('LAST_CLASS_KEY');
-                } catch(error) { console.error("結束教室時發生錯誤: ", error); }
-            };
+                    if (!auth.currentUser || !auth.currentUser.isAnonymous) await signInAnonymously(auth);
+                    
+                    const docSnap = await getDoc(classroomRef);
+                    if (!docSnap.exists() || !docSnap.data().isActive) return showMessage("教室不存在或已關閉。", () => { window.location.hash = ''; });
 
-            if (silent) {
-                action();
-            } else {
-                showConfirmation("您確定要結束這個教室嗎？", action);
-            }
-        }
-        
-        async function updateStudentStatus(classCode, seat, status, isOnline) {
-             const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
-             const updateData = {};
-             updateData[`students.${seat}.status`] = status;
-             updateData[`students.${seat}.online`] = isOnline;
-             updateData[`students.${seat}.lastSeen`] = serverTimestamp();
-             try {
-                await updateDoc(classroomRef, updateData);
-             } catch(error) {
-                console.error("更新狀態時發生錯誤:", error);
-                if (isOnline) { showMessage("更新狀態失敗，請檢查網路連線。"); }
-             }
-        }
-        
-        async function changeStatus(classCode, seat, newStatus) {
-            lastActiveStatus = newStatus; 
-            await updateStudentStatus(classCode, seat, newStatus, true);
-        }
-
-        function updateStudentUI(currentStatus) {
-            statusOrder.forEach(statusKey => {
-                const optionDiv = document.getElementById(`status-option-${statusKey}`);
-                if (optionDiv) {
-                    if (statusKey === currentStatus) {
-                        optionDiv.classList.add('active');
-                    } else {
-                        optionDiv.classList.remove('active');
-                    }
-                }
-            });
-        }
-
-        function renderStudentGrid(studentCount, students) {
-            const grid = document.getElementById('student-grid');
-            grid.innerHTML = '';
-            for (let i = 1; i <= studentCount; i++) {
-                const studentData = students[i] || { status: 'offline', online: false };
-                const statusKey = studentData.online ? studentData.status : 'offline';
-                const statusInfo = STATUSES[statusKey] || STATUSES['offline'];
-                const card = document.createElement('div');
-                card.className = `student-card p-2 rounded-lg text-center flex flex-col items-center justify-center pop-in ${statusInfo.color}`;
-                card.style.animationDelay = `${i * 20}ms`;
-                card.innerHTML = `
-                    <div class="text-2xl font-extrabold text-gray-800">${i}</div>
-                    <div class="my-1 w-12 h-12 flex items-center justify-center text-gray-700">${statusInfo.icon}</div>
-                    <div class="font-bold text-xs text-gray-600 h-8 flex items-center">${statusInfo.text}</div>
-                `;
-                grid.appendChild(card);
-            }
-        }
-
-        function showTeacherDashboard(classCode) {
-            if (!auth.currentUser || auth.currentUser.isAnonymous) return showMessage("只有老師才能查看儀表板", () => {window.location.hash = '';});
-            
-            showView('teacher-dashboard-view');
-            document.getElementById('teacher-class-code').textContent = classCode;
-            document.getElementById('end-class-btn').onclick = () => endClassroom(classCode);
-            const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
-            if (currentStatusUnsubscribe) currentStatusUnsubscribe();
-            currentStatusUnsubscribe = onSnapshot(classroomRef, async (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (!data.isActive) {
-                        if (currentStatusUnsubscribe) currentStatusUnsubscribe();
-                        showMessage("這個教室已被老師關閉。", () => {window.location.hash = ''; });
-                        return;
-                    }
-
-                    const now = Timestamp.now();
-                    const createdAt = data.createdAt;
-                    const hasActiveStudents = Object.values(data.students).some(s => s.online);
-                    if (now.seconds - createdAt.seconds > 600 && !hasActiveStudents) {
-                         console.log(`教室 ${classCode} 因閒置超過10分鐘而自動關閉。`);
-                         await endClassroom(classCode, true);
-                         return;
-                    }
-
-                    renderStudentGrid(data.studentCount, data.students || {});
-                } else {
+                    await updateStudentStatus(classCode, seat, lastActiveStatus, true);
+                    
                     if (currentStatusUnsubscribe) currentStatusUnsubscribe();
-                    showMessage("找不到這個教室！", () => { window.location.hash = ''; });
+                    currentStatusUnsubscribe = onSnapshot(classroomRef, (docSnap) => {
+                        if (!docSnap.exists() || !docSnap.data().isActive) {
+                            if (currentStatusUnsubscribe) currentStatusUnsubscribe();
+                            return showMessage("老師已結束教室。", () => { window.location.hash = ''; });
+                        }
+                        const students = docSnap.data().students || {};
+                        const myData = students[seat];
+                        if (myData && myData.online) {
+                            lastActiveStatus = myData.status;
+                            updateStudentUI(myData.status);
+                        }
+                    });
+
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.hidden) {
+                            offlineTimer = setTimeout(() => {
+                                 updateStudentStatus(classCode, seat, lastActiveStatus, false);
+                            }, 10000); 
+                        } else {
+                            clearTimeout(offlineTimer);
+                            updateStudentStatus(classCode, seat, lastActiveStatus, true);
+                        }
+                    });
+                    window.addEventListener('beforeunload', () => {
+                        updateStudentStatus(classCode, seat, lastActiveStatus, false);
+                    });
+
+                } catch (error) {
+                    console.error("進入學生頁面時發生錯誤:", error);
+                    showMessage("加入教室時發生錯誤。");
                 }
-            });
-        }
-        
-        async function showStudentTaskPage(classCode, seat) {
-            showView('student-task-view');
-            document.getElementById('student-task-view').innerHTML = `
-             <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg mx-auto">
-                <div class="flex justify-between items-center">
-                    <p class="text-lg text-gray-500">教室代碼: <span class="font-bold text-blue-600">${classCode}</span></p>
-                    <h1 class="text-4xl font-extrabold my-4">座號 <span class="text-amber-500">${seat}</span></h1>
-                </div>
-                <p class="text-2xl font-bold mb-6 text-center">請點擊圖示，更新您的任務狀態</p>
-                <div id="status-options-grid" class="grid grid-cols-2 gap-4"></div>
-            </div>`;
+            }
+
+            async function createClassroom() {
+                if (!auth.currentUser || auth.currentUser.isAnonymous) return showMessage("請先登入老師帳號。");
+                
+                const studentCount = parseInt(document.getElementById('student-count').value);
+                if (!studentCount || studentCount < 1 || studentCount > 40) return showMessage("請輸入有效的學生人數 (1-40)。");
+                
+                let classCode;
+                let classExists = true;
+                while(classExists) {
+                    classCode = Math.floor(1000 + Math.random() * 9000).toString();
+                    const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
+                    const docSnap = await getDoc(classroomRef);
+                    classExists = docSnap.exists();
+                }
+                const initialStudents = {};
+                for(let i=1; i<=studentCount; i++) {
+                    initialStudents[i] = { status: 'offline', online: false, lastSeen: serverTimestamp() };
+                }
+                const classroomData = {
+                    teacherId: auth.currentUser.uid,
+                    studentCount: studentCount,
+                    students: initialStudents,
+                    createdAt: serverTimestamp(),
+                    isActive: true
+                };
+                try {
+                    await setDoc(doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode), classroomData);
+                    localStorage.setItem('LAST_CLASS_KEY', classCode);
+                    window.location.hash = `#/teacher/${classCode}`;
+                } catch (error) {
+                    console.error("建立教室時發生錯誤: ", error);
+                    showMessage("建立教室時發生錯誤，請稍後再試。");
+                }
+            }
             
-            const optionsGrid = document.getElementById('status-options-grid');
-            statusOrder.forEach(statusKey => {
-                const statusInfo = STATUSES[statusKey];
-                const optionDiv = document.createElement('div');
-                optionDiv.id = `status-option-${statusKey}`;
-                optionDiv.className = `status-option cursor-pointer p-4 rounded-2xl flex flex-col items-center justify-center text-center ${statusInfo.color}`;
-                optionDiv.innerHTML = `
-                    <div class="w-16 h-16 mb-2 text-gray-700">${statusInfo.icon}</div>
-                    <p class="font-bold text-gray-800">${statusInfo.text}</p>
-                `;
-                optionDiv.onclick = () => changeStatus(classCode, seat, statusKey);
-                optionsGrid.appendChild(optionDiv);
-            });
-
-            const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
-            try {
-                if (!auth.currentUser || !auth.currentUser.isAnonymous) await signInAnonymously(auth);
+            function showTeacherPanel() {
+                showView('teacher-main-view');
+            }
+            
+            function showStudentPanel() {
+                showView('student-join-view');
+            }
+            
+            // --- Execution Logic ---
+            
+            // This is the single entry point for the application.
+            function main() {
+                document.getElementById('teacher-role-btn').onclick = showTeacherPanel;
+                document.getElementById('student-role-btn').onclick = showStudentPanel;
+                document.getElementById('google-login-btn').onclick = signInAsTeacher;
+                document.getElementById('logout-btn').onclick = () => signOut(auth);
+                document.getElementById('create-class-btn').onclick = createClassroom;
+                document.getElementById('join-class-btn').onclick = joinClassroom;
+                document.getElementById('resume-session-btn').onclick = resumeLastSession;
                 
-                const docSnap = await getDoc(classroomRef);
-                if (!docSnap.exists() || !docSnap.data().isActive) return showMessage("教室不存在或已關閉。", () => { window.location.hash = ''; });
-
-                await updateStudentStatus(classCode, seat, lastActiveStatus, true);
+                populateSeatSelector();
+                window.addEventListener('hashchange', routeApp);
                 
-                if (currentStatusUnsubscribe) currentStatusUnsubscribe();
-                currentStatusUnsubscribe = onSnapshot(classroomRef, (docSnap) => {
-                    if (!docSnap.exists() || !docSnap.data().isActive) {
-                        if (currentStatusUnsubscribe) currentStatusUnsubscribe();
-                        return showMessage("老師已結束教室。", () => { window.location.hash = ''; });
-                    }
-                    const students = docSnap.data().students || {};
-                    const myData = students[seat];
-                    if (myData && myData.online) {
-                        lastActiveStatus = myData.status;
-                        updateStudentUI(myData.status);
-                    }
-                });
-
-                document.addEventListener('visibilitychange', () => {
-                    if (document.hidden) {
-                        offlineTimer = setTimeout(() => {
-                             updateStudentStatus(classCode, seat, lastActiveStatus, false);
-                        }, 10000); 
+                onAuthStateChanged(auth, (user) => {
+                    if(user && !user.isAnonymous) {
+                        userId = user.uid;
+                        updateUIToTeacherLoggedIn(user);
+                        loadTeacherActiveSessions(user.uid); 
                     } else {
-                        clearTimeout(offlineTimer);
-                        updateStudentStatus(classCode, seat, lastActiveStatus, true);
+                        userId = null;
+                        updateUIToLoggedOut();
                     }
-                });
-                window.addEventListener('beforeunload', () => {
-                    updateStudentStatus(classCode, seat, lastActiveStatus, false);
+                    routeApp();
                 });
 
-            } catch (error) {
-                console.error("進入學生頁面時發生錯誤:", error);
-                showMessage("加入教室時發生錯誤。");
-            }
-        }
-
-        async function createClassroom() {
-            if (!auth.currentUser || auth.currentUser.isAnonymous) return showMessage("請先登入老師帳號。");
-            
-            const studentCount = parseInt(document.getElementById('student-count').value);
-            if (!studentCount || studentCount < 1 || studentCount > 40) return showMessage("請輸入有效的學生人數 (1-40)。");
-            
-            let classCode;
-            let classExists = true;
-            while(classExists) {
-                classCode = Math.floor(1000 + Math.random() * 9000).toString();
-                const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
-                const docSnap = await getDoc(classroomRef);
-                classExists = docSnap.exists();
-            }
-            const initialStudents = {};
-            for(let i=1; i<=studentCount; i++) {
-                initialStudents[i] = { status: 'offline', online: false, lastSeen: serverTimestamp() };
-            }
-            const classroomData = {
-                teacherId: auth.currentUser.uid,
-                studentCount: studentCount,
-                students: initialStudents,
-                createdAt: serverTimestamp(),
-                isActive: true
-            };
-            try {
-                await setDoc(doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode), classroomData);
-                window.location.hash = `#/teacher/${classCode}`;
-            } catch (error) {
-                console.error("建立教室時發生錯誤: ", error);
-                showMessage("建立教室時發生錯誤，請稍後再試。");
-            }
-        }
-        
-        // --- Execution Logic ---
-        
-        // This is the single entry point for the application.
-        function main() {
-            document.getElementById('teacher-role-btn').onclick = showTeacherPanel;
-            document.getElementById('student-role-btn').onclick = showStudentPanel;
-            document.getElementById('google-login-btn').onclick = signInAsTeacher;
-            document.getElementById('logout-btn').onclick = () => signOut(auth);
-            document.getElementById('create-class-btn').onclick = createClassroom;
-            document.getElementById('join-class-btn').onclick = joinClassroom;
-            document.getElementById('resume-session-btn').onclick = resumeLastSession;
-            
-            populateSeatSelector();
-            window.addEventListener('hashchange', routeApp);
-            
-            onAuthStateChanged(auth, (user) => {
-                if(user && !user.isAnonymous) {
-                    userId = user.uid;
-                    updateUIToTeacherLoggedIn(user);
-                    loadTeacherActiveSessions(user.uid); 
-                } else {
-                    userId = null;
-                    updateUIToLoggedOut();
+                if (!auth.currentUser) {
+                    signInAnonymously(auth).catch(error => {
+                        console.error("匿名登入失敗。", error);
+                        showMessage("驗證失敗，請刷新頁面再試。");
+                    });
                 }
-                routeApp();
-            });
-
-            if (!auth.currentUser) {
-                signInAnonymously(auth).catch(error => {
-                    console.error("匿名登入失敗。", error);
-                    showMessage("驗證失敗，請刷新頁面再試。");
-                });
             }
-        }
-        
-        main();
+            
+            main();
+        });
 
     </script>
 </body>
