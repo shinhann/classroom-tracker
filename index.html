@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 關鍵修改：更新內容安全策略(CSP)，允許 Firebase 和 Google 登入所需的所有資源 -->
+    <!-- 關鍵修改：更新內容安全策略(CSP)，允許 Firebase、Google 登入及字型所需的所有資源 -->
     <meta http-equiv="Content-Security-Policy" 
           content="default-src 'self'; 
                    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://apis.google.com https://*.firebaseio.com; 
                    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
-                   font-src 'self' https://fonts.gstatic.com;
+                   font-src 'self' https://fonts.gstatic.com data:;
                    frame-src 'self' https://*.firebaseapp.com;
                    connect-src 'self' wss://*.firebaseio.com https://*.googleapis.com;">
     <title>教室任務狀態追蹤器</title>
@@ -521,40 +521,56 @@
                 showView('student-join-view');
             }
                 
-            // --- Execution Logic ---
-            function main() {
-                document.getElementById('teacher-role-btn').onclick = showTeacherPanel;
-                document.getElementById('student-role-btn').onclick = showStudentPanel;
-                document.getElementById('google-login-btn').onclick = signInAsTeacher;
-                document.getElementById('logout-btn').onclick = () => signOut(auth);
-                document.getElementById('create-class-btn').onclick = createClassroom;
-                document.getElementById('join-class-btn').onclick = joinClassroom;
-                document.getElementById('resume-session-btn').onclick = resumeLastSession;
-                
-                populateSeatSelector();
-                window.addEventListener('hashchange', routeApp);
-                
-                onAuthStateChanged(auth, (user) => {
-                    if(user && !user.isAnonymous) {
-                        userId = user.uid;
-                        updateUIToTeacherLoggedIn(user);
-                        loadTeacherActiveSessions(user.uid); 
-                    } else {
-                        userId = null;
-                        updateUIToLoggedOut();
-                    }
-                    routeApp();
-                });
+            function routeApp() {
+                const hash = window.location.hash.slice(1);
+                const parts = hash.split('/').filter(p => p); 
+                const view = parts[0];
+                const code = parts[1];
+                const seat = parts[2];
 
-                if (!auth.currentUser) {
-                    signInAnonymously(auth).catch(error => {
-                        console.error("匿名登入失敗。", error);
-                        showMessage("驗證失敗，請刷新頁面再試。");
-                    });
+                if (view === 'teacher' && code) {
+                    showTeacherDashboard(code);
+                } else if (view === 'student' && code && seat) {
+                    showStudentTaskPage(code, seat);
+                } else {
+                    if (auth.currentUser && !auth.currentUser.isAnonymous) {
+                        showView('teacher-main-view');
+                    } else {
+                        showView('role-selection-view');
+                    }
                 }
             }
+
+            // --- Execution Logic ---
+            document.getElementById('teacher-role-btn').onclick = showTeacherPanel;
+            document.getElementById('student-role-btn').onclick = showStudentPanel;
+            document.getElementById('google-login-btn').onclick = signInAsTeacher;
+            document.getElementById('logout-btn').onclick = () => signOut(auth);
+            document.getElementById('create-class-btn').onclick = createClassroom;
+            document.getElementById('join-class-btn').onclick = joinClassroom;
+            document.getElementById('resume-session-btn').onclick = resumeLastSession;
             
-            main();
+            populateSeatSelector();
+            window.addEventListener('hashchange', routeApp);
+            
+            onAuthStateChanged(auth, (user) => {
+                if(user && !user.isAnonymous) {
+                    userId = user.uid;
+                    updateUIToTeacherLoggedIn(user);
+                    loadTeacherActiveSessions(user.uid); 
+                } else {
+                    userId = null;
+                    updateUIToLoggedOut();
+                }
+                routeApp();
+            });
+
+            if (!auth.currentUser) {
+                signInAnonymously(auth).catch(error => {
+                    console.error("匿名登入失敗。", error);
+                    showMessage("驗證失敗，請刷新頁面再試。");
+                });
+            }
         });
 
     </script>
