@@ -48,23 +48,21 @@
 </head>
 <body class="bg-gray-100 text-gray-800 flex flex-col min-h-screen">
 
-    <!-- 主內容容器 -->
     <main class="w-full flex-grow flex items-center justify-center p-4">
         <div id="app-container" class="w-full max-w-7xl mx-auto">
 
-            <!-- 初始載入/身份選擇畫面 -->
             <div id="role-selection-view" class="max-w-xl mx-auto">
                 <div class="text-center bg-white p-8 rounded-2xl shadow-lg">
                     <h1 class="text-4xl font-extrabold text-indigo-700 mb-2">🚀 教室任務衝衝衝！</h1>
                     <p class="text-gray-500 mb-8">請選擇您的身份</p>
                     <div class="space-y-4">
+                        <button id="resume-session-btn" class="hidden w-full bg-purple-600 text-white font-bold py-4 px-6 rounded-lg shadow-md hover:bg-purple-700 transition-all duration-300 transform hover:scale-105 text-2xl">➡️ 返回進行中的教室</button>
                         <button id="teacher-role-btn" class="w-full bg-blue-500 text-white font-bold py-4 px-6 rounded-lg shadow-md hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 text-2xl">👑 我是老師</button>
                         <button id="student-role-btn" class="w-full bg-green-500 text-white font-bold py-4 px-6 rounded-lg shadow-md hover:bg-green-600 transition-all duration-300 transform hover:scale-105 text-2xl">🎒 我是學生</button>
                     </div>
                 </div>
             </div>
             
-            <!-- 老師登入/建立教室畫面 -->
             <div id="teacher-main-view" class="hidden max-w-xl mx-auto text-center">
                  <div class="bg-white p-8 rounded-2xl shadow-lg">
                     <div id="teacher-login-panel">
@@ -136,7 +134,7 @@
         </div>
     </div>
     
-    <a href="https://docs.google.com/document/d/1DlJmmo7XsiqLHWCO0rDU5i-yuPLgI9NPN0tTBdrlm14/edit?usp=sharing" target="_blank" class="group fixed bottom-5 right-5 w-14 h-14 bg-gray-600 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 opacity-30 hover:opacity-100">
+    <a href="https://docs.google.com/document/d/1DlJmmo7XsiqLHWCO0rDU5i-yuPLgI9NPN0tTBdrlm14/edit?usp=sharing" target="_blank" class="group fixed bottom-5 right-5 w-14 h-14 bg-gray-600 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 opacity-40 hover:opacity-100">
         <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         <span class="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2">使用說明</span>
     </a>
@@ -149,7 +147,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut, browserLocalPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyC_M_5aXGEuFoDA58fHVbI-1Pv_YQK5x48",
@@ -185,21 +183,25 @@
 
             function showView(viewId) {
                 ['role-selection-view', 'teacher-main-view', 'student-join-view', 'teacher-dashboard-view', 'student-task-view'].forEach(id => {
-                    document.getElementById(id).classList.add('hidden');
+                    const el = document.getElementById(id);
+                    if (el) el.classList.add('hidden');
                 });
-                document.getElementById(viewId).classList.remove('hidden');
+                const viewEl = document.getElementById(viewId);
+                if(viewEl) viewEl.classList.remove('hidden');
             }
 
             function showMessage(message, onclose) {
                 const modal = document.getElementById('message-modal');
                 const messageP = document.getElementById('modal-message');
                 const closeBtn = document.getElementById('modal-close-btn');
-                messageP.textContent = message;
-                modal.classList.remove('hidden');
-                closeBtn.onclick = () => {
-                    modal.classList.add('hidden');
-                    if (onclose) { onclose(); }
-                };
+                if (modal && messageP && closeBtn) {
+                    messageP.textContent = message;
+                    modal.classList.remove('hidden');
+                    closeBtn.onclick = () => {
+                        modal.classList.add('hidden');
+                        if (onclose) { onclose(); }
+                    };
+                }
             }
             
             function showConfirmation(message, onConfirm) {
@@ -207,13 +209,15 @@
                 const messageP = document.getElementById('confirmation-message');
                 const confirmBtn = document.getElementById('confirm-btn');
                 const cancelBtn = document.getElementById('cancel-btn');
-                messageP.textContent = message;
-                modal.classList.remove('hidden');
-                confirmBtn.onclick = () => {
-                    modal.classList.add('hidden');
-                    if (onConfirm) { onConfirm(); }
-                };
-                cancelBtn.onclick = () => { modal.classList.add('hidden'); };
+                if (modal && messageP && confirmBtn && cancelBtn) {
+                    messageP.textContent = message;
+                    modal.classList.remove('hidden');
+                    confirmBtn.onclick = () => {
+                        modal.classList.add('hidden');
+                        if (onConfirm) { onConfirm(); }
+                    };
+                    cancelBtn.onclick = () => { modal.classList.add('hidden'); };
+                }
             }
             
             function resumeLastSession() {
@@ -544,8 +548,7 @@
                     }
                 }
             }
-
-            // --- Execution Logic ---
+            
             function main() {
                 document.getElementById('teacher-role-btn').onclick = showTeacherPanel;
                 document.getElementById('student-role-btn').onclick = showStudentPanel;
