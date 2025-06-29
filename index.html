@@ -526,12 +526,9 @@
                     userId = null;
                     updateUIToLoggedOut();
                 }
-                // Reroute whenever auth state changes to show the correct initial view.
                 routeApp();
             });
 
-            // If there's no user, start the anonymous sign-in process.
-            // onAuthStateChanged will handle the rest.
             if (!auth.currentUser) {
                 signInAnonymously(auth).catch(error => {
                     console.error("匿名登入失敗。", error);
