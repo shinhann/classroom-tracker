@@ -68,9 +68,19 @@
                 </div>
                  <div id="create-class-panel" class="hidden">
                      <h2 class="text-2xl font-bold text-blue-800 mb-4">歡迎，<span id="teacher-name"></span>老師！</h2>
-                     <p class="text-gray-500 mb-6">請輸入學生人數以建立新教室。</p>
-                     <input type="number" id="student-count" min="1" max="40" placeholder="班級有幾位學生？" class="w-full p-3 border-2 border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none mb-4">
-                     <button id="create-class-btn" class="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-600">建立教室</button>
+                     
+                     <!-- 進行中的教室列表 -->
+                     <div id="active-classrooms-section" class="hidden mb-6 text-left">
+                        <h3 class="font-bold text-lg text-gray-700 mb-2">返回進行中的教室：</h3>
+                        <div id="active-classrooms-list" class="flex flex-wrap gap-2"></div>
+                     </div>
+
+                     <div class="border-t pt-6">
+                        <p class="text-gray-500 mb-6">或者，您可以建立一個新的教室。</p>
+                        <input type="number" id="student-count" min="1" max="40" placeholder="班級有幾位學生？" class="w-full p-3 border-2 border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none mb-4">
+                        <button id="create-class-btn" class="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-600">建立新教室</button>
+                        <button id="logout-btn" class="mt-4 text-sm text-gray-500 hover:underline">登出</button>
+                     </div>
                  </div>
             </div>
         </div>
@@ -125,7 +135,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyC_M_5aXGEuFoDA58fHVbI-1Pv_YQK5x48",
@@ -155,11 +165,11 @@
         let offlineTimer = null;
         let lastActiveStatus = 'working';
 
-        // --- 核心啟動邏輯 ---
         function main() {
             document.getElementById('teacher-role-btn').onclick = showTeacherPanel;
             document.getElementById('student-role-btn').onclick = showStudentPanel;
             document.getElementById('google-login-btn').onclick = signInAsTeacher;
+            document.getElementById('logout-btn').onclick = () => signOut(auth);
             document.getElementById('create-class-btn').onclick = createClassroom;
             document.getElementById('join-class-btn').onclick = joinClassroom;
             
@@ -170,7 +180,9 @@
                 if(user && !user.isAnonymous) {
                     userId = user.uid;
                     updateUIToTeacherLoggedIn(user);
+                    loadTeacherActiveSessions(user.uid); 
                 } else {
+                    userId = null;
                     updateUIToLoggedOut();
                 }
                 routeApp();
@@ -205,11 +217,7 @@
         }
         
         function showTeacherPanel() {
-            if (auth.currentUser && !auth.currentUser.isAnonymous) {
-                updateUIToTeacherLoggedIn(auth.currentUser);
-            } else {
-                showView('teacher-main-view');
-            }
+            showView('teacher-main-view');
         }
 
         function showStudentPanel() {
@@ -219,8 +227,7 @@
         function updateUIToTeacherLoggedIn(user) {
             showView('teacher-main-view');
             document.getElementById('teacher-login-panel').classList.add('hidden');
-            const createPanel = document.getElementById('create-class-panel');
-            createPanel.classList.remove('hidden');
+            document.getElementById('create-class-panel').classList.remove('hidden');
             document.getElementById('teacher-name').textContent = user.displayName || '老師';
         }
         
@@ -228,6 +235,7 @@
             showView('role-selection-view');
             document.getElementById('teacher-login-panel').classList.remove('hidden');
             document.getElementById('create-class-panel').classList.add('hidden');
+            document.getElementById('active-classrooms-section').classList.add('hidden');
         }
 
         async function signInAsTeacher() {
@@ -278,6 +286,32 @@
             }
         }
 
+        async function loadTeacherActiveSessions(teacherId) {
+            const classroomsRef = collection(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`);
+            const q = query(classroomsRef, where("teacherId", "==", teacherId), where("isActive", "==", true));
+            
+            const querySnapshot = await getDocs(q);
+            const listContainer = document.getElementById('active-classrooms-list');
+            const section = document.getElementById('active-classrooms-section');
+            listContainer.innerHTML = '';
+            
+            if (querySnapshot.empty) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            querySnapshot.forEach((doc) => {
+                const button = document.createElement('button');
+                button.className = "bg-purple-100 text-purple-800 font-bold py-2 px-4 rounded-lg hover:bg-purple-200";
+                button.textContent = `教室代碼: ${doc.id}`;
+                button.onclick = () => {
+                    window.location.hash = `#/teacher/${doc.id}`;
+                };
+                listContainer.appendChild(button);
+            });
+        }
+
         function showTeacherDashboard(classCode) {
             if (!auth.currentUser || auth.currentUser.isAnonymous) return showMessage("只有老師才能查看儀表板", () => {window.location.hash = '';});
             
@@ -286,7 +320,7 @@
             document.getElementById('end-class-btn').onclick = () => endClassroom(classCode);
             const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
             if (currentStatusUnsubscribe) currentStatusUnsubscribe();
-            currentStatusUnsubscribe = onSnapshot(classroomRef, (docSnap) => {
+            currentStatusUnsubscribe = onSnapshot(classroomRef, async (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (!data.isActive) {
@@ -294,6 +328,17 @@
                         showMessage("這個教室已被老師關閉。", () => {window.location.hash = ''; });
                         return;
                     }
+
+                    // 自動關閉閒置教室邏輯
+                    const now = Timestamp.now();
+                    const createdAt = data.createdAt;
+                    const hasActiveStudents = Object.values(data.students).some(s => s.online);
+                    if (now.seconds - createdAt.seconds > 600 && !hasActiveStudents) {
+                         console.log(`教室 ${classCode} 因閒置超過10分鐘而自動關閉。`);
+                         await endClassroom(classCode, true); // Pass a flag to avoid confirmation
+                         return;
+                    }
+
                     renderStudentGrid(data.studentCount, data.students || {});
                 } else {
                     if (currentStatusUnsubscribe) currentStatusUnsubscribe();
@@ -328,7 +373,6 @@
                 optionsGrid.appendChild(optionDiv);
             });
 
-
             const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
             try {
                 if (!auth.currentUser || !auth.currentUser.isAnonymous) await signInAnonymously(auth);
@@ -352,12 +396,11 @@
                     }
                 });
 
-                // --- 離線偵測機制 ---
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden) {
                         offlineTimer = setTimeout(() => {
                              updateStudentStatus(classCode, seat, lastActiveStatus, false);
-                        }, 10000); // 10 秒後標記為離線
+                        }, 10000); 
                     } else {
                         clearTimeout(offlineTimer);
                         updateStudentStatus(classCode, seat, lastActiveStatus, true);
@@ -407,13 +450,19 @@
             }
         }
         
-        function endClassroom(classCode) {
-            showConfirmation("您確定要結束這個教室嗎？", async () => {
+        function endClassroom(classCode, silent = false) {
+            const action = async () => {
                 const classroomRef = doc(db, `artifacts/${firebaseConfig.projectId}/public/data/classrooms`, classCode);
                 try {
                     await updateDoc(classroomRef, { isActive: false });
                 } catch(error) { console.error("結束教室時發生錯誤: ", error); }
-            });
+            };
+
+            if (silent) {
+                action();
+            } else {
+                showConfirmation("您確定要結束這個教室嗎？", action);
+            }
         }
 
         function renderStudentGrid(studentCount, students) {
@@ -436,7 +485,7 @@
         }
 
         async function changeStatus(classCode, seat, newStatus) {
-            lastActiveStatus = newStatus; // Store the last active status
+            lastActiveStatus = newStatus; 
             await updateStudentStatus(classCode, seat, newStatus, true);
         }
         
